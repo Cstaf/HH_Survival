@@ -77,8 +77,8 @@ surv_plot <- function(sfit,
   suppressPackageStartupMessages(library(survival, warn.conflicts=FALSE))
   suppressPackageStartupMessages(library(gridExtra, warn.conflicts=FALSE))
   suppressPackageStartupMessages(library(reshape, warn.conflicts=FALSE))
-  
-
+  suppressPackageStartupMessages(library(grid, warn.conflicts=FALSE))
+  suppressPackageStartupMessages(library(scales, warn.conflicts=FALSE))
   #################################
   #         sortering             #
   #################################
@@ -150,7 +150,7 @@ ystrataname <- "Strata"
   
   colors_hc <- c("#00b3f6","#ffb117", "#434348", "#90ed7d","#AAEEEE", "#f15c80",
                  "#e4d354", "#2b908f", "#f45b5b",
-                 "#91e8e1", "#7798BF", "#8085e9")
+                  "#7798BF", "#8085e9")
   
   p <- ggplot( .df, aes(time, surv)) +
     geom_step(aes(colour = strata), size = linesize) +
@@ -164,6 +164,7 @@ ystrataname <- "Strata"
     theme(legend.text = element_text(size = base_size)) +
     theme(legend.title = element_blank()) +    
     theme(panel.border = element_blank()) +
+    theme(legend.background = element_rect(fill=alpha('white', 0))) +
     theme(panel.grid.major.y  = element_line(color='gray', size = .3)) +
     labs(linetype = ystrataname) +
     theme(plot.margin = unit(c(0, 1, .5,ifelse(m < 10, 1.5, 2.5)),"lines")) +
