@@ -23,7 +23,8 @@ surv_est <- function(df,
                      vitalstatus_namn,
                      stratum_var_namn = "",
                      age_namn = "",
-                     namecheck = FALSE
+                     namecheck = FALSE,
+                     relativ = TRUE
 )
 {
 
@@ -65,20 +66,33 @@ surv$vitaldatum <- gsub("-","",surv$vitaldatum)
   
   
   if(stratum_var_namn == ""){
-         fit <- rs.surv(Surv(survtime,vitalstatus) ~ ratetable(age= age*365.24,sex=sex,year=yeardag),
+      # Relativ överlevnad
+    if (relativ) {
+      fit <- rs.surv(Surv(survtime,vitalstatus) ~ ratetable(age= age*365.24,sex=sex,year=yeardag),
                         data = surv,
                         ratetable=popmort,
-                        method="ederer2")}
+                        method="ederer2")
+    } else {
+      # Observerad överlevnad
+      fit <- survfit(Surv(survtime,vitalstatus) ~ 1, 
+                     data = surv)   
+    }
+  }
   
   
   if(stratum_var_namn != ""){
     surv$stratum_var <- as.factor(surv$stratum_var)
-    surv$stratum_var <- factor(surv$stratum_var, levels=c(levels(surv$stratum_var)[1],rev(levels(surv$stratum_var))[1:nlevels(surv$stratum_var)-1]))
-      
+
+    if (relativ) {
+      surv$stratum_var <- factor(surv$stratum_var, levels=c(levels(surv$stratum_var)[1],rev(levels(surv$stratum_var))[1:nlevels(surv$stratum_var)-1]))
          fit <- rs.surv(Surv(survtime,vitalstatus) ~ stratum_var + ratetable(age= age*365.24,sex=sex,year=yeardag),
                         data = surv,
                         ratetable=popmort,
                         method="ederer2")
+    } else {
+      fit <- survfit(Surv(survtime,vitalstatus) ~ stratum_var, 
+                     data = surv)     
+    }
   if(namecheck == FALSE){
          a <- strsplit(names(fit$strata), ", stratum_var")
          a <- unlist(lapply(a, function(surv){
@@ -93,8 +107,13 @@ surv$vitaldatum <- gsub("-","",surv$vitaldatum)
   }
   }
   fit$time <- fit$time / 365.24
+  ################################################################################
+  
+  
+  
+  
   return(fit)
-}
+  }
 
 
 ####################################### POPMORT ###############################################

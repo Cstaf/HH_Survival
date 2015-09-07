@@ -24,7 +24,7 @@ library(stringr)
 ############################### Ladda funktioner ###############################
 if (!.is.inca()) source('~/Documents/Github/HH_Survival/fun_surv_est.R')
 if (!.is.inca()) source('~/Documents/Github/HH_Survival/fun_surv_plot.R')
-if (!.is.inca()) source('~/Documents/Github/HH_Survival/fun_popmort.R')
+if (!.is.inca()) source('~/Documents/Github/HH_Survival/fun_popmort_offline.R')
 # INCA
 if (.is.inca()) source('D:/R-Scripts/Väst/Oc5hoer/funktioner/fun_surv_est.R', encoding = "UTF-8")
 if (.is.inca()) source('D:/R-Scripts/Väst/Oc5hoer/funktioner/fun_surv_plot.R', encoding = "UTF-8")
@@ -37,6 +37,8 @@ if (!.is.inca()) Till <- 2013
 if (!.is.inca()) Diagnos <- "Samtliga diagnoser"
 if (!.is.inca()) Stadie <- "Samtliga stadier"
 if (!.is.inca()) Stratum <- "Aggregerat"
+if (!.is.inca()) Relativ <- "Relativ överlevnad"
+if (!.is.inca()) CI <- "Nej"
 if (!.is.inca()) Minålder <- 18
 if (!.is.inca()) Maxålder <- 110
 # INCA
@@ -45,6 +47,8 @@ if (.is.inca()) Till <- as.numeric(param[["Till"]])
 if (.is.inca()) Diagnos <- as.character(param[["Diagnos"]])
 if (.is.inca()) Stadie <- as.character(param[["Stadie"]])
 if (.is.inca()) Stratum <- as.character(param[["Stratum"]])
+if (.is.inca()) Relativ <- as.character(param[["Relativ"]])
+if (.is.inca()) CI <- as.character(param[["CI"]])
 if (.is.inca()) Minålder <- as.numeric(param[["Minålder"]])
 if (.is.inca()) Maxålder <- as.numeric(param[["Maxålder"]])
   
@@ -62,7 +66,9 @@ df_HH <- df %>%
          vitalstatusdatum_estimat != "",
          a_diadat != "",
          !is.na(a_alder)  
-         )
+         ) %>% 
+  arrange(a_diadat) %>% 
+  distinct(pat_id)
 
 
 ############################ Filtrering på stadie #############################
@@ -95,32 +101,30 @@ Urval <- paste0("(Urval: Diagnosår: ",Från,"-",Till,", Diagnos: ",Diagnos,", S
 
 
 
-Stratum <- "Per djskadljas"
-
 
 ####################### Aggregerad presentation eller ej #######################
 if (("Aggregerat" == Stratum)) {
   surv <- surv_est(df_HH, diagnosdatum_namn = "a_diadat", kön_namn = "kon_value", vitaldatum_namn = "vitalstatusdatum_estimat",
-                   vitalstatus_namn = "vitalstatus", age_namn = "a_alder") 
+                   vitalstatus_namn = "vitalstatus", age_namn = "a_alder", relativ = (Relativ == "Relativ överlevnad")) 
   # Skapa titel
-  Titel <- paste0("Relativ överlevnad per stadie \n", Urval)  # Skapa plot
-  surv_plot(surv, main = Titel)
+  Titel <- paste0(Relativ,"\n", Urval)  # Skapa plot
+  surv_plot(surv, main = Titel, CI = (CI == "Ja"))
   
   
 } else if ("Per stadie" == Stratum) {
   surv <- surv_est(df_HH, diagnosdatum_namn = "a_diadat", kön_namn = "kon_value", vitaldatum_namn = "vitalstatusdatum_estimat",
-                   vitalstatus_namn = "vitalstatus", age_namn = "a_alder", stratum_var_namn = "stadie_grupp")  
+                   vitalstatus_namn = "vitalstatus", age_namn = "a_alder", stratum_var_namn = "stadie_grupp", relativ = (Relativ == "Relativ överlevnad"))  
   # Skapa titel
-  Titel <- paste0("Relativ överlevnad per stadie \n", Urval)
+  Titel <- paste0(Relativ," per stadium \n", Urval)
   # Skapa plot
-  surv_plot(surv, legend = TRUE, main = Titel) 
+  surv_plot(surv, legend = TRUE, main = Titel, CI = (CI == "Ja")) 
 } else {
   surv <- surv_est(df_HH, diagnosdatum_namn = "a_diadat", kön_namn = "kon_value", vitaldatum_namn = "vitalstatusdatum_estimat",
-                   vitalstatus_namn = "vitalstatus", age_namn = "a_alder", stratum_var_namn = "diagnos_grupp")  
+                   vitalstatus_namn = "vitalstatus", age_namn = "a_alder", stratum_var_namn = "diagnos_grupp", relativ = (Relativ == "Relativ överlevnad"))  
   # Skapa titel
-  Titel <- paste0("Relativ överlevnad per stadie \n", Urval)
+  Titel <- paste0(Relativ," per diagnos \n", Urval)
   # Skapa plot
-  surv_plot(surv, legend = TRUE, main = Titel)  
+  surv_plot(surv, legend = TRUE, main = Titel, CI = (CI == "Ja"))  
 } 
    
   
