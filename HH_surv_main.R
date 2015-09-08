@@ -9,7 +9,7 @@
 ############# Identifiera working directory beroende på vem som kör skriptet #############
 
 path <- if (.is.inca()) {
-  "D:/R-Scripts/Väst/Oc5hoer/"
+  "D:/R-Scripts/Väst/oc5hoer/"
   } else if (Sys.info()["user"] == "erikbulow") {
   "~/Documents/huvud_hals/HH_Survival/"
 }else {
@@ -82,7 +82,7 @@ df_HH <- df %>%
 if (!("Samtliga stadier" %in% param$Stadie)) df_HH <- df_HH %>% 
   filter(stadie_grupp %in% param$Stadie)
 Stadie <- if (!("Samtliga stadier" %in% param$Stadie)) {
-  paste(Stadie, collapse=",")
+  paste(param$Stadie, collapse=",")
 } else {
   "Samtliga stadier"
 }
@@ -93,7 +93,7 @@ Stadie <- if (!("Samtliga stadier" %in% param$Stadie)) {
 if (!("Samtliga diagnoser" %in% param$Diagnos)) df_HH <- df_HH %>%
   filter(diagnos_grupp %in% param$Diagnos)
 Diagnos <- if (!("Samtliga diagnoser" %in% param$Diagnos)) {
-  paste(Diagnos, collapse=",")
+  paste(param$Diagnos, collapse=",")
 } else {
   "Samtliga diagnoser"
 }
