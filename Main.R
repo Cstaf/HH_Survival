@@ -22,13 +22,9 @@ library(stringr)
 
 
 ############################### Ladda funktioner ###############################
-if (!.is.inca()) source('~/Documents/Github/HH_Survival/fun_surv_est.R')
-if (!.is.inca()) source('~/Documents/Github/HH_Survival/fun_surv_plot.R')
-if (!.is.inca()) source('~/Documents/Github/HH_Survival/fun_popmort_offline.R')
-# INCA
-if (.is.inca()) source('D:/R-Scripts/Väst/Oc5hoer/funktioner/fun_surv_est.R', encoding = "UTF-8")
-if (.is.inca()) source('D:/R-Scripts/Väst/Oc5hoer/funktioner/fun_surv_plot.R', encoding = "UTF-8")
-if (.is.inca()) source('D:/R-Scripts/Väst/Oc5hoer/funktioner/fun_popmort.R', encoding = "UTF-8")
+files <- c("fun_surv_est.R", "fun_surv_plot.R", "fun_popmort_offline.R")
+path <- if (!.is.inca()) "~/Documents/Github/HH_Survival/" else "D:/R-Scripts/Väst/Oc5hoer/funktioner/"
+lapply(paste0(path, files), source, encoding = "UTF-8")
 
 
 ############################ Laddning av parametrar ############################
