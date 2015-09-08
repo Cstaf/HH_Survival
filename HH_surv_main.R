@@ -81,8 +81,8 @@ df_HH <- df %>%
 ############################ Filtrering på stadie #############################
 if (!("Samtliga stadier" %in% param$Stadie)) df_HH <- df_HH %>% 
   filter(stadie_grupp %in% param$Stadie)
-Stadie <- if (!("Samtliga stadier" %in% param$Stadie)) {
-  paste(param$Stadie, collapse=",")
+Stadie_label <- if (!("Samtliga stadier" %in% param$Stadie)) {
+  paste(param[["Stadie"]], collapse=", ")
 } else {
   "Samtliga stadier"
 }
@@ -92,16 +92,16 @@ Stadie <- if (!("Samtliga stadier" %in% param$Stadie)) {
 ############################ Filtrering på diagnos #############################
 if (!("Samtliga diagnoser" %in% param$Diagnos)) df_HH <- df_HH %>%
   filter(diagnos_grupp %in% param$Diagnos)
-Diagnos <- if (!("Samtliga diagnoser" %in% param$Diagnos)) {
-  paste(param$Diagnos, collapse=",")
+Diagnos_label <- if (!("Samtliga diagnoser" %in% param$Diagnos)) {
+  paste( param[["Diagnos"]], collapse=", ")
 } else {
   "Samtliga diagnoser"
 }
 
 
 ######################### Skapa text för valda urvalet #########################
-Urval <- with(param, paste0("(Urval: Diagnosår: ", Från,"-", Till,", Diagnos: ", 
-                           Diagnos,", Stadie: ", Stadie, ", Ålder: ", Minålder, 
+Urval <- with(param, paste0("(Urval: Diagnosår: ", Från,"-", Till,", Diagnos: [", 
+                           Diagnos_label,"], Stadie: [", Stadie_label, "], Ålder: ", Minålder, 
                            "-",Maxålder, ")"
           ))
 
