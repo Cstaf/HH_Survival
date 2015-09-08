@@ -1,6 +1,6 @@
 
 suppressMessages(library(relsurv))
-ratedata     <-      read.delim2("popmort19582015.txt",header=T)
+ratedata     <-      read.delim2("popmort/popmort19582015.txt",header=T)
 
 men    <- matrix(type.convert(as.character(ratedata[ratedata$sex==1,"prob"])),
                  nrow=max(ratedata$X_age)-min(ratedata$X_age)+1,

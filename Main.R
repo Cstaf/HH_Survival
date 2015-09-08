@@ -43,7 +43,7 @@ library(stringr)
 
 ############################### Ladda funktioner ###############################
 files <- c("fun_surv_est.R", "fun_surv_plot.R", "fun_popmort.R")
-lapply(paste0(path, files), source, encoding = "UTF-8")
+lapply(paste0(path, "funktioner/", files), source, encoding = "UTF-8")
 
 
 ############################ Laddning av parametrar ############################
