@@ -1,16 +1,36 @@
-# Main
-
 
 ############### Funktion för att testa vilken miljö vi sitter i ################
 .is.inca <- function(){
   unname(!(Sys.info()["sysname"] == "Darwin"))
 }
 
-if (!.is.inca()){
-  setwd("~/Documents/Github/HH_Survival")
-  rm(list=ls())
-  df <- read.csv2("HH.txt")
+
+
+############# Identifiera working directory beroende på vem som kör skriptet #############
+
+path <- if (.is.inca()) {
+  "~/Documents/Github/HH_Survival/" 
+} else if (Sys.info()["user"] == "erikbulow") {
+  "~/Documents/huvud_hals/HH_Survival/"
+}else {
+  "D:/R-Scripts/Väst/Oc5hoer/funktioner/"
 }
+
+
+############################ Läs in data om vi jobbar lokalt #############################
+
+if (!.is.inca()) {
+  setwd(path)
+  # rm(list = setdiff(ls(), "path"))
+  if (!file.exists("HH.rda")) {
+    df <- read.csv2("HH.txt")
+    save(df, file = "HH.rda")
+  } else {
+    load("HH.rda")
+  }
+}
+
+
 
 
 ################################# Ladda paket ##################################
@@ -22,8 +42,7 @@ library(stringr)
 
 
 ############################### Ladda funktioner ###############################
-files <- c("fun_surv_est.R", "fun_surv_plot.R", "fun_popmort_offline.R")
-path <- if (!.is.inca()) "~/Documents/Github/HH_Survival/" else "D:/R-Scripts/Väst/Oc5hoer/funktioner/"
+files <- c("fun_surv_est.R", "fun_surv_plot.R", "fun_popmort.R")
 lapply(paste0(path, files), source, encoding = "UTF-8")
 
 
