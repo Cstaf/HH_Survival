@@ -9,18 +9,18 @@
 ############# Identifiera working directory beroende på vem som kör skriptet #############
 
 path <- if (.is.inca()) {
-  "~/Documents/Github/HH_Survival/" 
-} else if (Sys.info()["user"] == "erikbulow") {
+  "D:/R-Scripts/Väst/Oc5hoer/"
+  } else if (Sys.info()["user"] == "erikbulow") {
   "~/Documents/huvud_hals/HH_Survival/"
 }else {
-  "D:/R-Scripts/Väst/Oc5hoer/funktioner/"
+  "~/Documents/Github/HH_Survival/" 
 }
+setwd(path)
 
 
 ############################ Läs in data om vi jobbar lokalt #############################
 
 if (!.is.inca()) {
-  setwd(path)
   # rm(list = setdiff(ls(), "path"))
   if (!file.exists("HH.rda")) {
     df <- read.csv2("HH.txt")
@@ -49,15 +49,15 @@ lapply(paste0(path, "funktioner/", files), source, encoding = "UTF-8")
 ############################ Laddning av parametrar ############################
 if (!.is.inca()) {
   param <- list(
-    Från     =  2010,
-    Till     =  2013,
+    Från     =  "2010",
+    Till     =  "2013",
     Diagnos  =  "Samtliga diagnoser",
     Stadie   =  "Samtliga stadier",
     Stratum  =  "Aggregerat",
     Relativ  =  "Relativ överlevnad",
     CI       =  "Nej",
-    Minålder =  18,
-    Maxålder =  110
+    Minålder =  "18",
+    Maxålder =  "110"
   )
 }
   
@@ -79,9 +79,9 @@ df_HH <- df %>%
 
 
 ############################ Filtrering på stadie #############################
-if (!("Samtliga stadier" %in% Stadie)) df_HH <- df_HH %>% 
-  filter(stadie_grupp %in% Stadie)
-Stadie <- if (!("Samtliga stadier" %in% Stadie)) {
+if (!("Samtliga stadier" %in% param$Stadie)) df_HH <- df_HH %>% 
+  filter(stadie_grupp %in% param$Stadie)
+Stadie <- if (!("Samtliga stadier" %in% param$Stadie)) {
   paste(Stadie, collapse=",")
 } else {
   "Samtliga stadier"
@@ -90,9 +90,9 @@ Stadie <- if (!("Samtliga stadier" %in% Stadie)) {
   
 
 ############################ Filtrering på diagnos #############################
-if (!("Samtliga diagnoser" %in% Diagnos)) df_HH <- df_HH %>%
-  filter(diagnos_grupp %in% Diagnos)
-Diagnos <- if (!("Samtliga diagnoser" %in% Diagnos)) {
+if (!("Samtliga diagnoser" %in% param$Diagnos)) df_HH <- df_HH %>%
+  filter(diagnos_grupp %in% param$Diagnos)
+Diagnos <- if (!("Samtliga diagnoser" %in% param$Diagnos)) {
   paste(Diagnos, collapse=",")
 } else {
   "Samtliga diagnoser"
@@ -113,26 +113,26 @@ Urval <- with(param, paste0("(Urval: Diagnosår: ", Från,"-", Till,", Diagnos: 
 
 
 ####################### Aggregerad presentation eller ej #######################
-if (("Aggregerat" == Stratum)) {
+if (("Aggregerat" == param$Stratum)) {
   surv <- surv_est(df_HH, diagnosdatum_namn = "a_diadat", kön_namn = "kon_value", vitaldatum_namn = "vitalstatusdatum_estimat",
                    vitalstatus_namn = "vitalstatus", age_namn = "a_alder", relativ = param$Relativ == "Relativ överlevnad")
   # Skapa titel
-  Titel <- paste0(Relativ,"\n", Urval)  # Skapa plot
+  Titel <- paste0(param$Relativ,"\n", Urval)  # Skapa plot
   surv_plot(surv, main = Titel, CI = param$CI == "Ja")
   
   
-} else if ("Per stadie" == Stratum) {
+} else if ("Per stadie" == param$Stratum) {
   surv <- surv_est(df_HH, diagnosdatum_namn = "a_diadat", kön_namn = "kon_value", vitaldatum_namn = "vitalstatusdatum_estimat",
                    vitalstatus_namn = "vitalstatus", age_namn = "a_alder", stratum_var_namn = "stadie_grupp", relativ = param$Relativ == "Relativ överlevnad")
   # Skapa titel
-  Titel <- paste0(Relativ," per stadium \n", Urval)
+  Titel <- paste0(param$Relativ," per stadium \n", Urval)
   # Skapa plot
   surv_plot(surv, legend = TRUE, main = Titel, CI = param$CI == "Ja")
 } else {
   surv <- surv_est(df_HH, diagnosdatum_namn = "a_diadat", kön_namn = "kon_value", vitaldatum_namn = "vitalstatusdatum_estimat",
                    vitalstatus_namn = "vitalstatus", age_namn = "a_alder", stratum_var_namn = "diagnos_grupp", relativ = param$Relativ == "Relativ överlevnad")
   # Skapa titel
-  Titel <- paste0(Relativ," per diagnos \n", Urval)
+  Titel <- paste0(param$Relativ," per diagnos \n", Urval)
   # Skapa plot
   surv_plot(surv, legend = TRUE, main = Titel, CI = param$CI == "Ja")
 } 
