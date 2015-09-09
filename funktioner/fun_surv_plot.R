@@ -17,7 +17,6 @@
 # Legend: Skall en legend inkluderas? (logical)                                             Default = FALSE
 # Legendposition: Positionen för legenden, c(x,y)                                           Default = c(.25, .25)
 # Legendtitle: Legendtitel                                                                  Default = ""
-# Ystratalabs: Vektor för stratum levels                                                    Default = levels(summary(sfit)$strata)
 
 ###################################################################################################################################
 
@@ -33,226 +32,195 @@
 #################################################### Övriga parametrar ############################################################
 
 # Main: Huvudtitel                                                                          Default = ""
-# Marks: Markering för censorering (logical)                                                Default = FALSE
-# Shape: Formen på markering för censorering                                                Default = Ett streck
+# censoring_shape: Form på markering för censorering                                                Default = NULL
 # CI: Skall konfidensintervall inkluderas? (logical)                                        Default = FALSE
 
 ###################################################################################################################################
 
-surv_plot <- function(sfit,
-                    table = TRUE,
-                    xlabs = "År efter diagnos",
-                    ylabs = "Överlevnad",
-                    tablabs = "Antal i risk",
-                    xlims = c(0,5),
-                    ylims = c(0,1),
-                    ystratalabs = NULL,
-                    timeby = 1,
-                    main = "",
-                    marks = FALSE,
-                    shape = 3,
-                    legend = F,
-                    legend.position = c( .25, .25),
-                    CI = F,
-                    tabadjust1 = 1,
-                    tabadjust2 = 1,
-                    linesize = 1,
-                    base_size=14,
-                    legendtitle = "",
-                    tabsize = 4,
-                    ...) {
+summary_incasurv <- function(sfit) {
+  
+  # Data to be used in the survival plot
+  df <- as.data.frame(unclass(sfit)[c("time", "n.risk", "n.event", "n.censor", "surv", "upper", "lower")])
+  df$strata <- if (is.null(sfit$strata)) "All" else as.character(survival:::summary.survfit(sfit, censored = T)$strata)
+ 
+  # Add initial start values for time = 0
+  zeros <- data.frame(
+    strata = unique(df$strata),
+    time   = 0, surv = 1,
+    upper  = 1, lower = 1, 
+    stringsAsFactors = FALSE)
+  df <- plyr::rbind.fill(zeros, df)
+
+  df
+}
   
 
-  #############
-  # libraries #
-  #############
+
+
+
+surv_plot <- function(sfit,
+                      table = TRUE,
+                      xlabs = "År efter diagnos",
+                      ylabs = "Överlevnad",
+                      tablabs = "Antal i risk; överlevnad i % (95 % CI för överlevnad)",
+                      xlims = c(0,5),
+                      ylims = c(0,1),
+                      timeby = 1,
+                      main = "",
+                      censoring_shape = NULL,
+                      legend.position = c( 0.05, 0.025),
+                      CI = FALSE,
+                      tabadjust1 = 1,
+                      tabadjust2 = 1,
+                      linesize = 1,
+                      base_size = 12,
+                      legendtitle = "",
+                      tabsize = 3
+                      ) {
   
-  #Check if the following packages have been installed. If not, install them
-  if (!"ggplot2" %in% installed.packages()) install.packages("ggplot2")
-  if (!"survival" %in% installed.packages()) install.packages("survival")
-  if (!"gridExtra" %in% installed.packages()) install.packages("gridExtra")
-  if (!"reshape" %in% installed.packages()) install.packages("reshape")
-  library(scales)
-  suppressPackageStartupMessages(library(ggplot2, warn.conflicts=FALSE))
-  suppressPackageStartupMessages(library(survival, warn.conflicts=FALSE))
-  suppressPackageStartupMessages(library(gridExtra, warn.conflicts=FALSE))
-  suppressPackageStartupMessages(library(reshape, warn.conflicts=FALSE))
-  suppressPackageStartupMessages(library(grid, warn.conflicts=FALSE))
-  suppressPackageStartupMessages(library(scales, warn.conflicts=FALSE))
+  library(ggplot2)
+  
   #################################
-  #         sortering             #
+  #         Hjälpvariabler        #
   #################################
-  fit <- sfit
   
-  times <- seq(0, max(fit$time), by = timeby)
-    if(length(levels(summary(fit)$strata)) == 0) {
-      subs1 <- 1
-      subs2 <- 1:length(summary(fit,censored=T)$time)
-      subs3 <- 1:length(summary(fit,times = times,extend = TRUE)$time)
-    } else {
-      subs1 <- 1:length(levels(summary(fit)$strata))
-      subs2 <- 1:length(summary(fit,censored=T)$strata)
-      subs3 <- 1:length(summary(fit,times = times,extend = TRUE)$strata)
-    }
+  df                 <- summary_incasurv(sfit)
+  times              <- seq(0, max(sfit$time), by = timeby)
   
+  surv_by_strata     <- survival:::summary.survfit(sfit, times = times, extend = TRUE)
+  no.strata          <- max(1, length(unique(surv_by_strata$strata)))
+  strata_name_length <- max(nchar(df$strata))
   
-  ##################################
-  # data manipulation för plot    #
-  ##################################
+  colors_hc          <- c("#00b3f6","#ffb117", "#434348", 
+                          "#90ed7d","#AAEEEE", "#f15c80",
+                          "#e4d354", "#2b908f", "#f45b5b",
+                          "#7798BF", "#8085e9")
   
-  if(length(levels(summary(fit)$strata)) == 0) {
-    #[subs1]
-    if(is.null(ystratalabs)) ystratalabs <- as.character(sub("group=*","","All"))
-  } else {
-    #[subs1]
-    if(is.null(ystratalabs)) ystratalabs <- as.character(sub("group=*","",names(fit$strata)))
-  }
-  
-ystrataname <- "Strata"
-  m <- max(nchar(ystratalabs))
-  times <- seq(0, max(fit$time), by = timeby)
-  
-  if(length(levels(summary(fit)$strata)) == 0) {
-    Factor <- factor(rep("All",length(subs2)))
-  } else {
-    Factor <- factor(summary(fit, censored = T)$strata[subs2])
-  }
-  
-  #Data to be used in the survival plot
-  .df <- data.frame(
-    time = fit$time[subs2],
-    n.risk = fit$n.risk[subs2],
-    n.event = fit$n.event[subs2],
-    n.censor = fit$n.censor[subs2],
-    surv = fit$surv[subs2],
-    strata = Factor,
-    upper = fit$upper[subs2],
-    lower = fit$lower[subs2]
-  )
-  
-  #Final changes to data for survival plot
-  levels(.df$strata) <- ystratalabs
-  zeros <- data.frame(time = 0, surv = 1,
-                      strata = factor(ystratalabs, levels=levels(.df$strata)),
-                      upper = 1, lower = 1)
-  .df <- rbind.fill(zeros, .df)
-  d <- length(levels(.df$strata))
   
   ###################################
   # specifying plot parameteres etc #
   ###################################
   
-  # Sätt HC färger8085e9
-#   colors_hc <- c("#7CB5EC", "#434348", "#90ed7d",
-#                  "#f7a35c", "#AAEEEE", "#f15c80",
-#                  "#e4d354", "#2b908f", "#f45b5b",
-#                  "#91e8e1", "#7798BF", "#8085e9")
-  
-  colors_hc <- c("#00b3f6","#ffb117", "#434348", "#90ed7d","#AAEEEE", "#f15c80",
-                 "#e4d354", "#2b908f", "#f45b5b",
-                  "#7798BF", "#8085e9")
-  
-  p <- ggplot( .df, aes(time, surv)) +
+  # Kaplan-Meier-kurva/kurvor
+  p <- ggplot( df, aes(time, surv)) +
     geom_step(aes(colour = strata), size = linesize) +
-    theme_bw(base_size=base_size) +
-    theme(axis.title.x = element_text(vjust = 0.5)) +
+    theme_bw(base_size = base_size) +
     scale_x_continuous(xlabs, breaks = times, limits = xlims) +
-    scale_y_continuous(ylabs,limits = ylims, labels=percent) +
-    theme(panel.grid.minor = element_blank()) +
-    theme(legend.position = legend.position) +
-    theme(legend.key = element_rect(colour = NA)) +
-    theme(legend.text = element_text(size = base_size)) +
-    theme(legend.title = element_blank()) +    
-    theme(panel.border = element_blank()) +
-    theme(legend.background = element_rect(fill=alpha('white', 0))) +
-    theme(panel.grid.major.y  = element_line(color='gray', size = .3)) +
-    labs(linetype = ystrataname) +
-    theme(plot.margin = unit(c(0, 1, .5,ifelse(m < 10, 1.5, 2.5)),"lines")) +
+    scale_y_continuous(ylabs, limits = ylims, labels = scales::percent) +
+    theme(
+        axis.title.x         = element_text(vjust = 0.5),
+        panel.grid.minor     = element_blank(),
+        legend.justification = c(0,0),
+        legend.position      = legend.position,
+        legend.key           = element_rect(colour = NA),
+        legend.text          = element_text(size = base_size),
+        legend.title         = element_blank(),
+        panel.border         = element_blank(),
+        legend.background    = element_rect(fill = scales::alpha('white', 0)),
+        panel.grid.major.y   = element_line(color = 'gray', size = .3),
+        plot.margin          = grid::unit(c(0, 1, .5, if (strata_name_length < 10) 1.5 else 2.5),"lines")) +
     ggtitle(main) +
-    scale_colour_manual(values=colors_hc)
-
-
+    scale_colour_manual(values = colors_hc)
 
  
-  if(legendtitle !="") { 
-    p <- p + scale_colour_manual(name  = legendtitle, values=colors_hc) +
-      theme(legend.title = element_text(face = "bold")) }
-
-  
-  
-
-  #Removes the legend: 
-  if(legend == FALSE) 
-    p <- p + theme(legend.position="none")
+  # Control the legend - use only of more than one strata!
+  if (no.strata <= 1) {
+    p <- p + 
+      theme(legend.position = "none")
+  } else if (legendtitle != "") { 
+    p <- p + 
+      scale_colour_manual(name  = legendtitle, values = colors_hc) +
+      theme(legend.title = element_text(face = "bold")) 
+  }
+    
   
   # CI
-  p <- if(CI == T ) {
-    p + geom_step(aes(y = upper, col = strata), linetype="dashed") +
-      geom_step(aes(y = lower, col = strata), linetype="dashed")
-  } else (p)
+  if (CI) {
+    p <- p + 
+      geom_step(aes(y = upper, col = strata), linetype = "dashed") +
+      geom_step(aes(y = lower, col = strata), linetype = "dashed")
+  } 
   
   
-  #Add censoring marks to the line:
-  if(marks == TRUE)
-    p <- p + geom_point(data = subset(.df, n.censor >= 1), aes(x = time, y = surv), shape = shape)
-  
+  # Add censoring marks to the line:
+  if (!is.null(censoring_shape)) {
+    p <- p + geom_point(data = subset(df, n.censor >= 1), 
+                        aes(x = time, y = surv), 
+                        shape = censoring_shape)
+  }
 
   ## Create a blank plot for place-holding
-  blank.pic <- ggplot(.df, aes(time, surv)) +
-    geom_blank() + theme_bw() +
-    theme(axis.text.x = element_blank(),axis.text.y = element_blank(),
-          axis.title.x = element_blank(),axis.title.y = element_blank(),
-          axis.ticks = element_blank(),
-          panel.grid.major = element_blank(),panel.border = element_blank())
+  blank.pic <- 
+    ggplot(df, aes(time, surv)) +
+    geom_blank() + 
+    theme_bw() +
+    theme(axis.text.x       = element_blank(), 
+          axis.text.y       = element_blank(),
+          axis.title.x      = element_blank(),
+          axis.title.y      = element_blank(),
+          axis.ticks        = element_blank(),
+          panel.grid.major  = element_blank(),
+          panel.border      = element_blank()
+    )
   
   ###################################################
   # Create table graphic to include at-risk numbers #
   ###################################################
   
-  if(length(levels(summary(fit)$strata)) == 0) {
-    Factor <- factor(rep("All",length(subs3)))
+  if (!table) {
+    return(p)
   } else {
-    Factor <- factor(summary(fit,times = times,extend = TRUE)$strata[subs3])
-  }
-  
-  if(table == TRUE) {
-    risk.data <- data.frame(
-      strata = Factor,
-      time = summary(fit,times = times,extend = TRUE)$time[subs3],
-      n.risk = summary(fit,times = times,extend = TRUE)$n.risk[subs3]
+    
+    
+    # Table with data to present
+    risk.data <- 
+      with(surv_by_strata,
+        data.frame(
+        strata = if (no.strata <= 1) "All" else strata,
+        time   = time,
+        n.risk = n.risk,
+        cell_text = ifelse(time != 0,
+                      paste0(n.risk, "; ", 
+                           round(surv * 100), 
+                           " (", round(lower * 100), "-", round(upper * 100), ")"),
+                      n.risk)
+      )
     )
-    risk.data$strata <- factor(risk.data$strata, levels=rev(levels(risk.data$strata)))
-    
-    data.table <- ggplot(risk.data,aes(x = time, y = strata, label = format(n.risk, nsmall = 0))) +
-      geom_text(size = tabsize) + theme_bw() +
+
+    data.table <- 
+      ggplot(risk.data, 
+             aes(x = time, y = rev(strata), label = format(cell_text, justify = "left"))) +
+      geom_text(size = tabsize) + 
+      theme_bw() +
       scale_y_discrete(breaks = as.character(levels(risk.data$strata)),
-                       labels = rev(ystratalabs)) +
+                       labels = rev(levels(risk.data$strata))) +
       scale_x_continuous(tablabs, limits = xlims) +
-      theme(axis.title.x = element_text(size = base_size, vjust = 1),
-            panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-            panel.border = element_blank(),axis.text.x = element_blank(),
-            axis.ticks = element_blank(),axis.text.y = element_text(face = "bold",hjust = 1, size =tabsize*3))
+      theme(axis.title.x     = element_text(size = tabsize * 3, vjust = 1),
+            panel.grid.major = element_blank(), 
+            panel.grid.minor = element_blank(),
+            panel.border     = element_blank(),
+            axis.text.x      = element_blank(),
+            axis.ticks       = element_blank(),
+            axis.text.y      = element_text(face = "bold", hjust = 1, size = tabsize * 3),
+            legend.position  = "none",
+            plot.margin      = grid::unit(x = c(
+                                      -1.5,                                           # top
+                                      tabadjust1,                                     # right
+                                      0.1,                                            # bottom
+                                      (if (strata_name_length < 10) 2.5 else 3.5 )
+                                         * tabadjust2 - 0.15 * strata_name_length),   # left 
+                                    units = "lines")
+      ) +
+      xlab(NULL) + 
+      ylab(NULL)
     
-    data.table <- data.table +
-      theme(legend.position = "none") + xlab(NULL) + ylab(NULL)
-    
-    # ADJUST POSITION OF TABLE FOR AT RISK
-    data.table <- data.table +
-      theme(plot.margin = unit(c(-1.5, 1*tabadjust1, 0.1, ifelse(m < 10, 2.5*tabadjust2, 3.5*tabadjust2) - 0.15 * m), "lines"))
-    
-    #######################
-    # Plotting the graphs #
-    #######################
-    
-    grid.arrange(p, blank.pic, data.table, clip = FALSE, nrow = 3,
-                 ncol = 1, heights = unit(c(2, .1, .25),c("null", "null", "null")))
-    
-    if(table == FALSE) {
-      a <- arrangeGrob(p, blank.pic, data.table, clip = FALSE, nrow = 3,
-                       ncol = 1, heights = unit(c(2, .1, .25), c("null", "null", "null")))
-      return(a)
-    }#if
-  } else {
-    if(table == FALSE) return(p)
-  }#else
+    # Make plot and table
+    gridExtra::grid.arrange(
+                p, 
+                blank.pic, 
+                data.table, 
+                clip = FALSE, nrow = 3, ncol = 1, 
+                heights = grid::unit(c(2, .1, .5), c("null", "null", "null"))
+    )
+  } 
 }

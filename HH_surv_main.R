@@ -5,7 +5,6 @@
 }
 
 
-
 ############# Identifiera working directory beroende på vem som kör skriptet #############
 
 path <- if (.is.inca()) {
@@ -31,15 +30,8 @@ if (!.is.inca()) {
 }
 
 
-
-
 ################################# Ladda paket ##################################
 library(dplyr)
-library(relsurv)
-library(ggplot2)
-library(gdata)
-library(stringr)
-
 
 ############################### Ladda funktioner ###############################
 files <- c("fun_surv_est.R", "fun_surv_plot.R", "fun_popmort.R")
@@ -53,7 +45,7 @@ if (!.is.inca()) {
     Till     =  "2013",
     Diagnos  =  "Samtliga diagnoser",
     Stadie   =  "Samtliga stadier",
-    Stratum  =  "Aggregerat",
+    Stratum  =  "Per diagnos",
     Relativ  =  "Relativ överlevnad",
     CI       =  "Nej",
     Minålder =  "18",
@@ -65,77 +57,68 @@ if (!.is.inca()) {
 ########################### Förberadande bearbetning ###########################
 names(df) <- tolower(names(df))
 df_HH <- df %>% 
-  mutate(stadie_grupp = str_trim(substring(as.character(a_stadium_beskrivning),1,3)),
-         diagnos_grupp = str_trim(gsub("[[:digit:]]","", a_icd10_gruppnamn))) %>% 
-  filter(region_namn != "Region Demo",
-         stadie_grupp %in% c("I", "II", "III", "IV", "-"),
-         diagnos_grupp != "",
+  mutate(stadie_grupp             = stringr::str_trim(substring(as.character(a_stadium_beskrivning),1,3)),
+         diagnos_grupp            = stringr::str_trim(gsub("[[:digit:]]","", a_icd10_gruppnamn))) %>% 
+  filter(region_namn              != "Region Demo",
+         stadie_grupp            %in% c("I", "II", "III", "IV", "-"),
+         diagnos_grupp            != "",
          vitalstatusdatum_estimat != "",
-         a_diadat != "",
+         a_diadat         != "",
          !is.na(a_alder)  
          ) %>% 
+  # Drop multiple tumours per patient
   arrange(a_diadat) %>% 
   distinct(pat_id)
 
 
 ############################ Filtrering på stadie #############################
-if (!("Samtliga stadier" %in% param$Stadie)) df_HH <- df_HH %>% 
-  filter(stadie_grupp %in% param$Stadie)
-Stadie_label <- if (!("Samtliga stadier" %in% param$Stadie)) {
-  paste(param[["Stadie"]], collapse=", ")
-} else {
-  "Samtliga stadier"
+if ("Samtliga stadier" %in% param$Stadie) {
+  stadie_label <- "Samtliga stadier"
+} else{
+  stadie_label <- paste(param$Stadie, collapse = ", ")
+  df_HH <- 
+    df_HH %>% 
+    filter(stadie_grupp %in% param$Stadie)
 }
-  
-  
 
+  
 ############################ Filtrering på diagnos #############################
-if (!("Samtliga diagnoser" %in% param$Diagnos)) df_HH <- df_HH %>%
-  filter(diagnos_grupp %in% param$Diagnos)
-Diagnos_label <- if (!("Samtliga diagnoser" %in% param$Diagnos)) {
-  paste( param[["Diagnos"]], collapse=", ")
-} else {
-  "Samtliga diagnoser"
+if ("Samtliga diagnoser" %in% param$Diagnos) {
+  diagnos_label <- "Samtliga diagnoser"
+} else{
+  diagnos_label <- paste(param$Diagnos, collapse = ", ")
+  df_HH <- 
+    df_HH %>% 
+    filter(diagnos_grupp %in% param$Diagnos)
 }
-
 
 ######################### Skapa text för valda urvalet #########################
-Urval <- with(param, paste0("(Urval: Diagnosår: ", Från,"-", Till,", Diagnos: [", 
-                           Diagnos_label,"], Stadie: [", Stadie_label, "], Ålder: ", Minålder, 
-                           "-",Maxålder, ")"
-          ))
+urval_label <- paste0("(Urval: Diagnosår: ", param$Från,"-", param$Till, ", ",
+                      "Diagnos: [", diagnos_label,"], ", 
+                      "Stadie: [", stadie_label, "], ",
+                      "Ålder: ", param$Minålder, "-", param$Maxålder, ")"
+                )
+huvudrubrik <- paste(param$Relativ, tolower(param$Stratum), "\n", urval_label)
 
 
 
 
+####################### Skapa överlevnadsplot #######################
 
+surv <- surv_est(df_HH, 
+                 diagnosdatum_namn = "a_diadat", 
+                 kön_namn = "kon_value", 
+                 vitaldatum_namn = "vitalstatusdatum_estimat",
+                 vitalstatus_namn = "vitalstatus", 
+                 age_namn = "a_alder", 
+                 relativ = param$Relativ == "Relativ överlevnad",
+                 stratum_var_namn = switch(param$Stratum,
+                                           "Aggregerat"  = "",
+                                           "Per stadie"  = "stadie_grupp",
+                                           "Per diagnos" = "diagnos_grupp"
+                 )
+        )
 
+surv_plot(surv, main = huvudrubrik, CI = param$CI == "Ja")
 
-
-####################### Aggregerad presentation eller ej #######################
-if (("Aggregerat" == param$Stratum)) {
-  surv <- surv_est(df_HH, diagnosdatum_namn = "a_diadat", kön_namn = "kon_value", vitaldatum_namn = "vitalstatusdatum_estimat",
-                   vitalstatus_namn = "vitalstatus", age_namn = "a_alder", relativ = param$Relativ == "Relativ överlevnad")
-  # Skapa titel
-  Titel <- paste0(param$Relativ,"\n", Urval)  # Skapa plot
-  surv_plot(surv, main = Titel, CI = param$CI == "Ja")
-  
-  
-} else if ("Per stadie" == param$Stratum) {
-  surv <- surv_est(df_HH, diagnosdatum_namn = "a_diadat", kön_namn = "kon_value", vitaldatum_namn = "vitalstatusdatum_estimat",
-                   vitalstatus_namn = "vitalstatus", age_namn = "a_alder", stratum_var_namn = "stadie_grupp", relativ = param$Relativ == "Relativ överlevnad")
-  # Skapa titel
-  Titel <- paste0(param$Relativ," per stadium \n", Urval)
-  # Skapa plot
-  surv_plot(surv, legend = TRUE, main = Titel, CI = param$CI == "Ja")
-} else {
-  surv <- surv_est(df_HH, diagnosdatum_namn = "a_diadat", kön_namn = "kon_value", vitaldatum_namn = "vitalstatusdatum_estimat",
-                   vitalstatus_namn = "vitalstatus", age_namn = "a_alder", stratum_var_namn = "diagnos_grupp", relativ = param$Relativ == "Relativ överlevnad")
-  # Skapa titel
-  Titel <- paste0(param$Relativ," per diagnos \n", Urval)
-  # Skapa plot
-  surv_plot(surv, legend = TRUE, main = Titel, CI = param$CI == "Ja")
-} 
-   
-  
-  
+ 
