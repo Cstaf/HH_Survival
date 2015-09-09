@@ -8,7 +8,7 @@
 ############# Identifiera working directory beroende på vem som kör skriptet #############
 
 path <- if (.is.inca()) {
-  "D:/R-Scripts/Väst/Oc5hoer/"
+  "D:/R-Scripts/Väst/oc5hoer/"
   } else if (Sys.info()["user"] == "erikbulow") {
   "~/Documents/huvud_hals/HH_Survival/"
 }else {
@@ -91,8 +91,6 @@ if ("Samtliga diagnoser" %in% param$Diagnos) {
     df_HH %>% 
     filter(diagnos_grupp %in% param$Diagnos)
 }
-
-
 
 ######################### Skapa text för valda urvalet #########################
 urval_label <- paste0("(Urval: Diagnosår: ", param$Från,"-", param$Till, ", ",
