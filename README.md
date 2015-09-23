@@ -11,7 +11,6 @@ I själva rapporten har också skapats parametrar för selektionsval av:
 
 Där finns även paramterval för:
 * hur resultatet presenteras (aggregerat eller uppdelat på stadium eller diagnos)
-* om 95 % konfidensintervall ska visas
 * om presenterad överlevnad ska vara relativ eller observerad.
 
 # Historik
