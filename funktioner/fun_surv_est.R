@@ -30,7 +30,7 @@ surv_est <- function(df,
 
 #################################### Laddning av packet #####################################
 suppressMessages(library(relsurv))
-suppressMessages(library(plyr)) 
+
 
 #############################################################################################
 
