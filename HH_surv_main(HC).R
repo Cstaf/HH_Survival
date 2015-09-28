@@ -59,6 +59,7 @@ if (!.is.inca()) {
 }
   
   
+
 ########################### Förberadande bearbetning ###########################
 names(df) <- tolower(names(df))
 df_HH <- df %>% 
