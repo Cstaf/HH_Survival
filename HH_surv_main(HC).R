@@ -11,13 +11,13 @@ path <- if (.is.inca()) {
   "D:/R-Scripts/Väst/oc5hoer/"
   } else if (Sys.info()["user"] == "erikbulow") {
   "~/Documents/huvud_hals/HH_Survival/"
-    setwd(path)
 }else {
   "~/Documents/Github/HH_Survival/"
-  setwd(path)
 }
 
-
+if (!(.is.inca())){
+  setwd(path)
+}
 
 ############################ Läs in data om vi jobbar lokalt #############################
 
