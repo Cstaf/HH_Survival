@@ -24,7 +24,7 @@ if (!(.is.inca())){
 if (!.is.inca()) {
   # rm(list = setdiff(ls(), "path"))
   if (!file.exists("HH.rda")) {
-    df <- read.csv2("HH.txt")
+    df <- read.csv("HH.txt")
     save(df, file = "HH.rda")
   } else {
     load("HH.rda")
@@ -50,7 +50,7 @@ if (!.is.inca()) {
     Till     =  "2013",
     Diagnos  =  "Samtliga diagnoser",
     Stadie   =  "Samtliga stadier",
-    Stratum  =  "Per stadie",
+    Stratum  =  "Aggregerat",
     Relativ  =  "Relativ överlevnad",
     CI       =  "Nej",
     Minålder =  "18",
@@ -64,7 +64,8 @@ if (!.is.inca()) {
 names(df) <- tolower(names(df))
 df_HH <- df %>% 
   mutate(stadie_grupp             = stringr::str_trim(substring(as.character(a_stadium_beskrivning),1,3)),
-         diagnos_grupp            = stringr::str_trim(gsub("[[:digit:]]","", a_icd10_gruppnamn))) %>% 
+         diagnos_grupp            = stringr::str_trim(gsub("[[:digit:]]","", a_icd10_gruppnamn)),
+         stadie_grupp             = ifelse(stadie_grupp == "", "-", as.character(stadie_grupp))) %>% 
   filter(region_namn              != "Region Demo",
          stadie_grupp            %in% c("I", "II", "III", "IV", "-"),
          diagnos_grupp            != "",
