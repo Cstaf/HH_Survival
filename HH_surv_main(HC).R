@@ -50,7 +50,7 @@ if (!.is.inca()) {
     Till     =  "2013",
     Diagnos  =  "Samtliga diagnoser",
     Stadie   =  "Samtliga stadier",
-    Stratum  =  "Aggregerat",
+    Stratum  =  "Per region",
     Relativ  =  "Relativ överlevnad",
     CI       =  "Nej",
     Minålder =  "18",
@@ -121,6 +121,7 @@ surv <- surv_est(df_HH,
                  relativ = param$Relativ == "Relativ överlevnad",
                  stratum_var_namn = switch(param$Stratum,
                                            "Aggregerat"  = "",
+                                           "Per region"  = "region_namn",
                                            "Per stadie"  = "stadie_grupp",
                                            "Per diagnos" = "diagnos_grupp"
                  )
@@ -174,6 +175,31 @@ if (("Aggregerat" == param$Stratum)) {
   # Header format
   headerFormat <- paste0("var headerFormat = '<span style=color:{series.color}><b>Stadie: {series.name}</b></span><br/>';")
 
+  
+  ## Region presentation (Kan eventuellt tages bort vid notifikation från Erik) ##
+} else if ("Per region" == param$Stratum) {
+  x <- with(summary(surv), data.frame(name = strata, x = time, y = surv, low = lower, up = upper, risk = n.risk))
+  x <- x %>% 
+    mutate(y = round(y,3)*100, 
+           x = round(x,2),
+           ci = paste0("(",round(low,3)*100, "% - ", round(up,3)*100, "%)" ),
+           data = paste0("{x:", x, ",y:", y, ",ci:'",ci, "',nrisk:", risk ,"}")) %>%
+    filter(!(x > 5.1)) %>% 
+    select(name, data) %>%
+    group_by(name) %>% 
+    do(data = paste(.$data, collapse = ","))
+  
+  ser <- paste("var","ser","=",toJSON(x), ";")
+  ser <- gsub('\\"\\{', '{', ser  )
+  ser <- gsub('\\}\\"', '}', ser  )  
+  # Skapa titel
+  titel <- paste0(param$Relativ, " per stadie")
+  # Legend
+  legend <- paste0("var legend = ","true" ,";")
+  # Header format
+  headerFormat <- paste0("var headerFormat = '<span style=color:{series.color}><b>{series.name}</b></span><br/>';")
+  
+  
   
   ############################# Diagnos presentation #############################
   
