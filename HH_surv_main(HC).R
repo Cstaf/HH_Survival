@@ -193,7 +193,7 @@ if (("Aggregerat" == param$Stratum)) {
   ser <- gsub('\\"\\{', '{', ser  )
   ser <- gsub('\\}\\"', '}', ser  )  
   # Skapa titel
-  titel <- paste0(param$Relativ, " per stadie")
+  titel <- paste0(param$Relativ, " per region")
   # Legend
   legend <- paste0("var legend = ","true" ,";")
   # Header format
