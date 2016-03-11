@@ -46,14 +46,14 @@ lapply(paste0(path, "funktioner/", files), source, encoding = "UTF-8")
 ############################ Laddning av parametrar ############################
 if (!.is.inca()) {
   param <- list(
-    Från     =  "2010",
-    Till     =  "2013",
-    Diagnos  =  "Samtliga diagnoser",
-    Stadie   =  "Samtliga stadier",
+    Från     =  "2011",
+    Till     =  "2012",
+    Diagnos  =  "Larynx",
+    Stadie   =  c("I", "II"),
     Stratum  =  "Per region",
     Relativ  =  "Relativ överlevnad",
     CI       =  "Nej",
-    Minålder =  "18",
+    Minålder =  "0",
     Maxålder =  "110"
   )
 }

@@ -33,7 +33,7 @@ function Survdiagram(render, titel, subtitel, height,width,marginBottom, legend 
            },   
            yAxis: {   
                min: 0,
-               max: 100, 
+               max: 110, 
                gridLineColor: '#EFEFEF',   
                title: {   
                    text: 'Överlevnad (%)'},   
